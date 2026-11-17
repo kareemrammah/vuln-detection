@@ -1,0 +1,7 @@
+transformers>=4.40
+datasets>=2.19
+scikit-learn
+numpy
+pandas
+matplotlib
+tqdm

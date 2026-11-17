@@ -1,0 +1,596 @@
+=== idx 756 label=0 p(vuln)=0.994 len=392
+static void gen_tlbsx_440(DisasContext *ctx)
+
+{
+
+#if defined(CONFIG_USER_ONLY)
+
+    gen_inval_exception(ctx, POWERPC_EXCP_PRIV_OPC);
+
+#else
+
+    TCGv t0;
+
+    if (unlikely(ctx->pr)) {
+
+        gen_inval_exception(ctx, POWERPC_EXCP_PRIV_OPC);
+
+        return;
+
+    }
+
+    t0 = tcg_temp_new();
+
+    gen_addr_reg_index(ctx, t0);
+
+    gen_helper_440_tlbsx(cpu_gpr[rD(ctx->opcode)], cpu_env, t0);
+
+    tcg_temp_free(t0);
+
+    if (Rc(ctx->opcode)) {
+
+        int l1 = gen_new_label();
+
+        tcg_gen_trunc_tl_i32(cpu_crf[0], cpu_so);
+
+        tcg_gen_brcondi_tl(TCG_COND_EQ, cpu_gpr[rD(ctx->opcode)], -1, l1);
+
+        tcg_gen_ori_i32(cpu_crf[0], cpu_crf[0], 0x02);
+
+        gen_set_label(l1);
+
+    }
+
+#endif
+
+}
+
+
+=== idx 2406 label=0 p(vuln)=0.989 len=159
+static void gen_storeq_reg(DisasContext *s, int rlow, int rhigh, TCGv val)
+
+{
+
+    TCGv tmp;
+
+    tmp = new_tmp();
+
+    tcg_gen_trunc_i64_i32(tmp, val);
+
+    store_reg(s, rlow, tmp);
+
+    tmp = new_tmp();
+
+    tcg_gen_shri_i64(val, val, 32);
+
+    tcg_gen_trunc_i64_i32(tmp, val);
+
+    store_reg(s, rhigh, tmp);
+
+}
+
+
+=== idx 307 label=0 p(vuln)=0.963 len=190
+void helper_tlb_update(uint32_t T0)
+
+{
+
+#if !defined(CONFIG_USER_ONLY)
+
+	uint32_t vaddr;
+
+	uint32_t srs = env->pregs[PR_SRS];
+
+
+
+	if (srs != 1 && srs != 2)
+
+		return;
+
+
+
+	vaddr = cris_mmu_tlb_latest_update(env, T0);
+
+	D(printf("flush old_vaddr=%x vaddr=%x T0=%x\n", vaddr, 
+
+		 env->sregs[SFR_R_MM_CAUSE] & TARGET_PAGE_MASK, T0));
+
+	tlb_flush_page(env, vaddr);
+
+#endif
+
+}
+
+
+=== idx 2345 label=0 p(vuln)=0.961 len=306
+void do_load_dcr (void)
+
+{
+
+    target_ulong val;
+
+
+
+    if (unlikely(env->dcr_env == NULL)) {
+
+        if (loglevel != 0) {
+
+            fprintf(logfile, "No DCR environment\n");
+
+        }
+
+        do_raise_exception_err(EXCP_PROGRAM, EXCP_INVAL | EXCP_INVAL_INVAL);
+
+    } else if (unlikely(ppc_dcr_read(env->dcr_env, T0, &val) != 0)) {
+
+        if (loglevel != 0) {
+
+            fprintf(logfile, "DCR read error %d %03x\n", (int)T0, (int)T0);
+
+        }
+
+        do_raise_exception_err(EXCP_PROGRAM, EXCP_INVAL | EXCP_PRIV_REG);
+
+    } else {
+
+        T0 = val;
+
+    }
+
+}
+
+
+=== idx 2074 label=0 p(vuln)=0.906 len=323
+static int xan_huffman_decode(unsigned char *dest, unsigned char *src)
+
+{
+
+    unsigned char byte = *src++;
+
+    unsigned char ival = byte + 0x16;
+
+    unsigned char * ptr = src + byte*2;
+
+    unsigned char val = ival;
+
+    int counter = 0;
+
+
+
+    unsigned char bits = *ptr++;
+
+
+
+    while ( val != 0x16 ) {
+
+        if ( (1 << counter) & bits )
+
+            val = src[byte + val - 0x17];
+
+        else
+
+            val = src[val - 0x17];
+
+
+
+        if ( val < 0x16 ) {
+
+            *dest++ = val;
+
+            val = ival;
+
+        }
+
+
+
+        if (counter++ == 7) {
+
+            counter = 0;
+
+            bits = *ptr++;
+
+        }
+
+    }
+
+
+
+    return 0;
+
+}
+
+
+=== idx 1102 label=0 p(vuln)=0.868 len=191
+void FUNCC(ff_h264_idct_dc_add)(uint8_t *_dst, int16_t *block, int stride){
+
+    int i, j;
+
+    int dc = (((dctcoef*)block)[0] + 32) >> 6;
+
+    pixel *dst = (pixel*)_dst;
+
+    stride >>= sizeof(pixel)-1;
+
+    for( j = 0; j < 4; j++ )
+
+    {
+
+        for( i = 0; i < 4; i++ )
+
+            dst[i] = av_clip_pixel( dst[i] + dc );
+
+        dst += stride;
+
+    }
+
+}
+
+
+=== idx 1361 label=0 p(vuln)=0.867 len=752
+void rgb15to16(const uint8_t *src,uint8_t *dst,uint32_t src_size)
+
+{
+
+#ifdef HAVE_MMX
+
+  register const char* s=src+src_size;
+
+  register char* d=dst+src_size;
+
+  register int offs=-src_size;
+
+  __asm __volatile(PREFETCH"	%0"::"m"(*(s+offs)):"memory");
+
+  __asm __volatile(
+
+	"movq	%0, %%mm4\n\t"
+
+	"movq	%1, %%mm5"
+
+	::"m"(mask15b), "m"(mask15rg):"memory");
+
+  while(offs<0)
+
+  {
+
+	__asm __volatile(
+
+		PREFETCH"	32%1\n\t"
+
+		"movq	%1, %%mm0\n\t"
+
+		"movq	8%1, %%mm2\n\t"
+
+		"movq	%%mm0, %%mm1\n\t"
+
+		"movq	%%mm2, %%mm3\n\t"
+
+		"pand	%%mm4, %%mm0\n\t"
+
+		"pand	%%mm5, %%mm1\n\t"
+
+		"pand	%%mm4, %%mm2\n\t"
+
+		"pand	%%mm5, %%mm3\n\t"
+
+		"psllq	$1, %%mm1\n\t"
+
+		"psllq	$1, %%mm3\n\t"
+
+		"por	%%mm1, %%mm0\n\t"
+
+		"por	%%mm3, %%mm2\n\t"
+
+		MOVNTQ"	%%mm0, %0\n\t"
+
+		MOVNTQ"	%%mm2, 8%0"
+
+		:"=m"(*(d+offs))
+
+		:"m"(*(s+offs))
+
+		:"memory");
+
+	offs+=16;
+
+  }
+
+  __asm __volatile(SFENCE:::"memory");
+
+  __asm __volatile(EMMS:::"memory");
+
+#else
+
+   const uint16_t *s1=( uint16_t * )src;
+
+   uint16_t *d1=( uint16_t * )dst;
+
+   uint16_t *e=((uint8_t *)s1)+src_size;
+
+   while( s1<e ){
+
+     register int x=*( s1++ );
+
+     /* rrrrrggggggbbbbb
+
+        0rrrrrgggggbbbbb
+
+        0111 1111 1110 0000=0x7FE0
+
+        00000000000001 1111=0x001F */
+
+     *( d1++ )=( x&0x001F )|( ( x&0x7FE0 )<<1 );
+
+   }
+
+#endif
+
+}
+
+
+=== idx 977 label=0 p(vuln)=0.855 len=100
+static uint32_t gt64120_read_config(PCIDevice *d, uint32_t address, int len)
+
+{
+
+    uint32_t val = pci_default_read_config(d, address, len);
+
+#ifdef TARGET_WORDS_BIGENDIAN
+
+    val = bswap32(val);
+
+#endif
+
+    return val;
+
+}
+
+
+=== idx 950 label=0 p(vuln)=0.842 len=90
+void op_cp1_registers(void)
+
+{
+
+    if (!(env->CP0_Status & (1 << CP0St_FR)) && (PARAM1 & 1)) {
+
+        CALL_FROM_TB1(do_raise_exception, EXCP_RI);
+
+    }
+
+    RETURN();
+
+}
+
+
+=== idx 1737 label=0 p(vuln)=0.840 len=71
+void stw_phys(target_phys_addr_t addr, uint32_t val)
+
+{
+
+    uint16_t v = tswap16(val);
+
+    cpu_physical_memory_write(addr, (const uint8_t *)&v, 2);
+
+}
+
+
+=== idx 473 label=0 p(vuln)=0.835 len=157
+uint32_t wm8750_adc_dat(void *opaque)
+
+{
+
+    WM8750State *s = (WM8750State *) opaque;
+
+    uint32_t *data;
+
+
+
+    if (s->idx_in >= sizeof(s->data_in))
+
+        wm8750_in_load(s);
+
+
+
+    data = (uint32_t *) &s->data_in[s->idx_in];
+
+    s->req_in -= 4;
+
+    s->idx_in += 4;
+
+    return *data;
+
+}
+
+
+=== idx 498 label=1 p(vuln)=0.167 len=31
+static int nbd_can_accept(void)
+
+{
+
+    return nb_fds < shared;
+
+}
+
+
+=== idx 1511 label=1 p(vuln)=0.168 len=118
+int s390_cpu_write_elf64_note(WriteCoreDumpFunction f, CPUState *cs,
+
+                              int cpuid, void *opaque)
+
+{
+
+    S390CPU *cpu = S390_CPU(cs);
+
+    return s390x_write_all_elf64_notes("CORE", f, cpu, cpuid, opaque);
+
+}
+
+
+=== idx 2009 label=1 p(vuln)=0.170 len=100
+static AioHandler *find_aio_handler(int fd)
+
+{
+
+    AioHandler *node;
+
+
+
+    LIST_FOREACH(node, &aio_handlers, node) {
+
+        if (node->fd == fd)
+
+            return node;
+
+    }
+
+
+
+    return NULL;
+
+}
+
+
+=== idx 335 label=1 p(vuln)=0.175 len=192
+static uint64_t icp_pit_read(void *opaque, target_phys_addr_t offset,
+
+                             unsigned size)
+
+{
+
+    icp_pit_state *s = (icp_pit_state *)opaque;
+
+    int n;
+
+
+
+    /* ??? Don't know the PrimeCell ID for this device.  */
+
+    n = offset >> 8;
+
+    if (n > 3) {
+
+        hw_error("sp804_read: Bad timer %d\n", n);
+
+    }
+
+
+
+    return arm_timer_read(s->timer[n], offset & 0xff);
+
+}
+
+
+=== idx 1640 label=0 p(vuln)=0.824 len=289
+static void gen_neon_unzip(int reg, int q, int tmp, int size)
+
+{
+
+    int n;
+
+    TCGv t0, t1;
+
+
+
+    for (n = 0; n < q + 1; n += 2) {
+
+        t0 = neon_load_reg(reg, n);
+
+        t1 = neon_load_reg(reg, n + 1);
+
+        switch (size) {
+
+        case 0: gen_neon_unzip_u8(t0, t1); break;
+
+        case 1: gen_neon_zip_u16(t0, t1); break; /* zip and unzip are the same.  */
+
+        case 2: /* no-op */; break;
+
+        default: abort();
+
+        }
+
+        neon_store_scratch(tmp + n, t0);
+
+        neon_store_scratch(tmp + n + 1, t1);
+
+    }
+
+}
+
+
+=== idx 2170 label=1 p(vuln)=0.184 len=143
+void aio_context_setup(AioContext *ctx, Error **errp)
+
+{
+
+#ifdef CONFIG_EPOLL
+
+    assert(!ctx->epollfd);
+
+    ctx->epollfd = epoll_create1(EPOLL_CLOEXEC);
+
+    if (ctx->epollfd == -1) {
+
+        ctx->epoll_available = false;
+
+    } else {
+
+        ctx->epoll_available = true;
+
+    }
+
+#endif
+
+}
+
+
+=== idx 2398 label=0 p(vuln)=0.811 len=104
+void *vnc_zlib_zalloc(void *x, unsigned items, unsigned size)
+
+{
+
+    void *p;
+
+
+
+    size *= items;
+
+    size = (size + ZALLOC_ALIGNMENT - 1) & ~(ZALLOC_ALIGNMENT - 1);
+
+
+
+    p = qemu_mallocz(size);
+
+
+
+    return (p);
+
+}
+
+
+=== idx 2712 label=0 p(vuln)=0.799 len=63
+static inline int test_bit(unsigned int bit, const unsigned long *map)
+
+{
+
+    return !!((map)[(bit) / BITS_PER_LONG] & (1UL << ((bit) % BITS_PER_LONG)));
+
+}
+
+
+=== idx 129 label=0 p(vuln)=0.798 len=180
+static void vp8_idct_dc_add4uv_c(uint8_t *dst, int16_t block[4][16], ptrdiff_t stride)
+
+{
+
+    vp8_idct_dc_add_c(dst+stride*0+0, block[0], stride);
+
+    vp8_idct_dc_add_c(dst+stride*0+4, block[1], stride);
+
+    vp8_idct_dc_add_c(dst+stride*4+0, block[2], stride);
+
+    vp8_idct_dc_add_c(dst+stride*4+4, block[3], stride);
+
+}
+
+
