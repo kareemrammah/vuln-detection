@@ -1,6 +1,6 @@
 # Detecting Vulnerable C Functions: Fine-Tuned CodeBERT vs. BiLSTM
 
-Kareem Rammah and Danny Leo
+CSC413 final project (University of Toronto Mississauga). Kareem Rammah and Danny Leo.
 
 ## Introduction
 We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset in the CodeXGLUE split) is vulnerable.
@@ -98,11 +98,11 @@ Data and model weights are not included (see Data).
   | BiLSTM-PT (CodeBERT embeddings) | 62.2 | 69.4 |
 
   Accuracy by function length (mean over 3 seeds): CodeBERT falls from 75.4% below 128 tokens to 57.2% above 2,000 tokens; the BiLSTM from 77.1% to 58.5%. The false-negative rate at threshold 0.5 is 30.0 / 49.6 / 43.1% for CodeBERT (lr 2e-5) and 29.1 / 35.1 / 45.5% for the BiLSTM, for seeds 0 / 1 / 2.
-- **Qualitative results:** we read the 19 most confident CodeBERT errors on the test set (`results/codebert_confident_errors.txt`). Fourteen are false positives, mostly low-level QEMU CPU and device emulation code with pointer arithmetic, manual temporary allocation, inline assembly, or `#if` guards, often in an older coding style. Five are false negatives: short functions that look correct in isolation, so their labels probably reflect the surrounding commit. We also read the 16 most confident BiLSTM errors (`results/bilstm_confident_errors.txt`): ten false negatives and six false positives, the reverse mix. Three false negatives are shared with CodeBERT. The BiLSTM's other false negatives are short locking or API-wrapper functions whose defects depend on outside context; one (`check_checksum`) has its checksum comparison commented out. Its false positives are ordinary block-layer, migration, and codec functions, none of which overlaps with CodeBERT's.
-- **Justification:** the BiLSTM and the better CodeBERT setting reach about 65% accuracy and 72–73% ROC-AUC. This is above the published CodeXGLUE numbers for this split (BiLSTM 59.4%, CodeBERT 62.1%; CodeBERT at 3e-5 only matches its published number) and far above a length-only classifier (52.5%), so they learn real signal. They are still weak detectors. They overfit within a few epochs, lose accuracy as functions get longer, and miss 29–50% of vulnerable functions at the default threshold, depending on the seed. A modest ceiling is plausible on a noisy, function-level, commit-derived benchmark, where graph-based methods reach only about 63–64%. The BiLSTM–CodeBERT difference is smaller than the variation between seeds and than the effect of the learning rate. We did not reproduce the published training setup, so differences in tokenizer, input length, pooling, or checkpoint selection may explain why we score higher. The formatting artifact explains at most about one point.
+- **Qualitative results:** we read 18 of the 20 most confident CodeBERT errors on the test set in full and a 19th in part (`results/codebert_confident_errors.txt`). Fourteen are false positives, mostly low-level QEMU CPU and device emulation code with pointer arithmetic, manual temporary allocation, inline assembly, or `#if` guards, often in an older coding style. Five are false negatives: short functions that look correct in isolation, so their labels probably reflect the surrounding commit. We also read the 16 most confident BiLSTM errors (`results/bilstm_confident_errors.txt`): ten false negatives and six false positives, the reverse mix. Three false negatives are shared with CodeBERT. The BiLSTM's other false negatives are short locking or API-wrapper functions whose defects depend on outside context; one (`check_checksum`) has its checksum comparison commented out. Its false positives are ordinary-looking QEMU block, KVM, vhost, and migration functions and FFmpeg H.264 code, none of which overlaps with CodeBERT's.
+- **Justification:** the BiLSTM and the better CodeBERT setting reach about 65% accuracy and 72–73% ROC-AUC. This is above the published CodeXGLUE numbers for this split (BiLSTM 59.4%, CodeBERT 62.1%; CodeBERT at 3e-5 only matches its published number) and far above a length-only classifier (52.5%), so they learn real signal. They are still weak detectors. They overfit within a few epochs, lose accuracy as functions get longer, and on average miss 30–41% of vulnerable functions at the default threshold (up to 50% for individual seeds). A modest ceiling is plausible on a noisy, function-level, commit-derived benchmark, where graph-based methods reach only about 63–64%. The BiLSTM–CodeBERT difference is smaller than the variation between seeds and than the effect of the learning rate. We did not reproduce the published training setup, so differences in tokenizer, input length, pooling, or checkpoint selection may explain why we score higher. The formatting artifact explains at most about one point.
 
 ## Ethical Considerations
-- **Missed vulnerabilities:** 29–50% of vulnerable functions are missed at the default threshold, depending on the seed. The risk is false reassurance, so this must not replace human review.
+- **Missed vulnerabilities:** On average 30–41% of vulnerable functions are missed at the default threshold, and up to 50% for individual seeds. The risk is false reassurance, so this must not replace human review.
 - **Dual use:** a model that ranks functions by likelihood of being vulnerable could also guide an attacker.
 - **Data limits:** labels come from security-related commits and are noisy; both projects are maintained by experienced developers; the dataset contains a formatting artifact. Results may not transfer to other code.
 - **Individuals:** flagged code is attributable to specific developers, so output must never be used to evaluate people.
@@ -131,8 +131,8 @@ Kareem Rammah and Danny Leo worked as a team of two.
 
 ## How to run
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/kareemrammah/vuln-detection.git
+cd vuln-detection
 pip install -r requirements.txt      # on Google Colab, do not reinstall torch
 export PYTHONPATH=src
 python src/eda.py && python src/length_baseline.py
