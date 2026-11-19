@@ -13,7 +13,7 @@ We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset
 ```
 src/            data.py (loading, dedupe, tokenization), models.py, train.py, analyze.py,
                 eda.py, length_baseline.py, brace_artifact.py
-report/         main.tex (the paper), eda.png, fig_curves.pdf
+report/         main.tex (the paper), architecture.png/.tex, eda.png, fig_curves.pdf
 results/        table.md, all_runs.json (metrics + training history of every run),
                 *_confident_errors.txt
 run_all.sh      every command used for the experiments
@@ -22,7 +22,10 @@ requirements.txt
 Data and model weights are not included (see Data).
 
 ## Model
-- **Architecture figure:** Figure 2 in `report/main.tex` (TikZ). TODO: export it as `report/architecture.png` and show it here with `![architecture](report/architecture.png)`.
+- **Architecture figure** (the same figure as Figure 2 in the report; source in `report/architecture.tex`):
+
+  ![Architecture of the two compared models](report/architecture.png)
+
 - **CodeBERT forward pass:** BPE tokens → `[CLS]` + tokens + `[SEP]` (at most 512 in total) → token + position embeddings with LayerNorm → 12 × (multi-head self-attention + feed-forward, each with a residual connection and LayerNorm) → final hidden state at `[CLS]` (768) → dropout 0.1 → linear → sigmoid.
 - **BiLSTM forward pass:** the same tokens → learned embedding (256) → 2-layer bidirectional LSTM (256 per direction, dropout 0.3 between layers, packed padded sequences) → concatenated directions (512) → masked max-pool over time (padding ignored) → dropout 0.3 → linear → sigmoid.
 - **Parameter counts** (from `results/all_runs.json`):
@@ -50,7 +53,7 @@ Data and model weights are not included (see Data).
   - 27,318 functions; train / validation / test = 21,854 / 2,732 / 2,732; vulnerable fraction 45.8% / 43.4% / 45.9%.
   - Token lengths (CodeBERT BPE, without special tokens, after deduplication): median 482, mean 1,114, 90th percentile 2,420, maximum 90,858; 48.1% exceed 512 tokens. Training medians are 443 (non-vulnerable) and 522 (vulnerable).
   - 10 test and 8 validation functions also occur in the training set; 21,796 of the 21,854 training functions are unique.
-- **Formatting artifact** (`python src/brace_artifact.py`): 5.8% of vulnerable training functions end without a closing brace, against under 0.1% of non-vulnerable ones (5.2% and under 0.1% in test). A model can use this as a shortcut for about 65 test functions (2.4%), which can add at most about one point of accuracy. We kept these functions to stay comparable with published results.
+- **Formatting artifact** (`python src/brace_artifact.py`): 5.8% of vulnerable training functions end without a closing brace, against under 0.1% of non-vulnerable ones (5.2% and under 0.1% in test). In the test split, 65 functions (2.4%) lack a final brace, and all 65 are vulnerable. The three models classify them with 89–93% accuracy, against 62–65% on the rest, and excluding them lowers overall accuracy by 0.6–0.7 points. We kept these functions to stay comparable with published results.
 - **Transformations:** whitespace-normalised exact-match deduplication of the training set, and removal of training functions that occur in validation or test (21,778 training functions remain). CodeBERT byte-level BPE tokenization for both models. Truncation to L tokens including `[CLS]` and `[SEP]` (first L tokens, or first and last L/2 for the head+tail ablation). Per-batch padding. No augmentation, comment stripping, or identifier renaming.
 - **Split:** the fixed benchmark split.
 
@@ -94,12 +97,12 @@ Data and model weights are not included (see Data).
   | BiLSTM first + last L/2 tokens | 64.0 | 72.3 |
   | BiLSTM-PT (CodeBERT embeddings) | 62.2 | 69.4 |
 
-  Accuracy by function length (seed 0): CodeBERT falls from 72.3% below 128 tokens to 54.3% above 2,000 tokens; the BiLSTM from 77.9% to 58.4%. The false-negative rate at threshold 0.5 is 30.0% for CodeBERT and 29.1% for the BiLSTM (seed 0).
-- **Qualitative results:** we read the 19 most confident CodeBERT errors on the test set (`results/codebert_confident_errors.txt`). Fourteen are false positives, mostly low-level QEMU CPU and device emulation code with pointer arithmetic, manual temporary allocation, inline assembly, or `#if` guards, often in an older coding style. Five are false negatives: short functions that look correct in isolation, so their labels probably reflect the surrounding commit. TODO: add one sentence about `results/bilstm_confident_errors.txt`.
-- **Justification:** the BiLSTM and the better CodeBERT setting reach about 65% accuracy and 72–73% ROC-AUC. This is above the published CodeXGLUE numbers for this split (BiLSTM 59.4%, CodeBERT 62.1%; CodeBERT at 3e-5 only matches its published number) and far above a length-only classifier (52.5%), so they learn real signal. They are still weak detectors. They overfit within a few epochs, lose accuracy as functions get longer, and miss about 30% of vulnerable functions. A modest ceiling is plausible on a noisy, function-level, commit-derived benchmark, where graph-based methods reach only about 63–64%. The BiLSTM–CodeBERT difference is smaller than the variation between seeds and than the effect of the learning rate. We did not reproduce the published training setup, so differences in tokenizer, input length, pooling, or checkpoint selection may explain why we score higher. The formatting artifact explains at most about one point.
+  Accuracy by function length (mean over 3 seeds): CodeBERT falls from 75.4% below 128 tokens to 57.2% above 2,000 tokens; the BiLSTM from 77.1% to 58.5%. The false-negative rate at threshold 0.5 is 30.0 / 49.6 / 43.1% for CodeBERT (lr 2e-5) and 29.1 / 35.1 / 45.5% for the BiLSTM, for seeds 0 / 1 / 2.
+- **Qualitative results:** we read the 19 most confident CodeBERT errors on the test set (`results/codebert_confident_errors.txt`). Fourteen are false positives, mostly low-level QEMU CPU and device emulation code with pointer arithmetic, manual temporary allocation, inline assembly, or `#if` guards, often in an older coding style. Five are false negatives: short functions that look correct in isolation, so their labels probably reflect the surrounding commit. We also read the 16 most confident BiLSTM errors (`results/bilstm_confident_errors.txt`): ten false negatives and six false positives, the reverse mix. Three false negatives are shared with CodeBERT. The BiLSTM's other false negatives are short locking or API-wrapper functions whose defects depend on outside context; one (`check_checksum`) has its checksum comparison commented out. Its false positives are ordinary block-layer, migration, and codec functions, none of which overlaps with CodeBERT's.
+- **Justification:** the BiLSTM and the better CodeBERT setting reach about 65% accuracy and 72–73% ROC-AUC. This is above the published CodeXGLUE numbers for this split (BiLSTM 59.4%, CodeBERT 62.1%; CodeBERT at 3e-5 only matches its published number) and far above a length-only classifier (52.5%), so they learn real signal. They are still weak detectors. They overfit within a few epochs, lose accuracy as functions get longer, and miss 29–50% of vulnerable functions at the default threshold, depending on the seed. A modest ceiling is plausible on a noisy, function-level, commit-derived benchmark, where graph-based methods reach only about 63–64%. The BiLSTM–CodeBERT difference is smaller than the variation between seeds and than the effect of the learning rate. We did not reproduce the published training setup, so differences in tokenizer, input length, pooling, or checkpoint selection may explain why we score higher. The formatting artifact explains at most about one point.
 
 ## Ethical Considerations
-- **Missed vulnerabilities:** about 30% of vulnerable functions are missed at the default threshold. The risk is false reassurance, so this must not replace human review.
+- **Missed vulnerabilities:** 29–50% of vulnerable functions are missed at the default threshold, depending on the seed. The risk is false reassurance, so this must not replace human review.
 - **Dual use:** a model that ranks functions by likelihood of being vulnerable could also guide an attacker.
 - **Data limits:** labels come from security-related commits and are noisy; both projects are maintained by experienced developers; the dataset contains a formatting artifact. Results may not transfer to other code.
 - **Individuals:** flagged code is attributable to specific developers, so output must never be used to evaluate people.
@@ -107,7 +110,24 @@ Data and model weights are not included (see Data).
 This is a research baseline, not a deployable scanner.
 
 ## Authors
-Kareem Rammah and Danny Leo. TODO (Kareem): describe who did what.
+<!-- Placeholder based on the proposal's planned work division. Confirm that it matches who actually did what before submitting. -->
+Kareem Rammah and Danny Leo worked as a team of two.
+
+**Kareem Rammah**
+- Repository setup, data loading, deduplication, tokenization, and the train/validation/test pipeline
+- CodeBERT fine-tuning script and evaluation metrics
+- BiLSTM and BiLSTM-PT training and hyperparameter tuning
+- Three-seed runs, truncation ablation, layer-freezing ablation, and parameter counts
+- Report: results, discussion, and limitations
+
+**Danny Leo**
+- BiLSTM baseline and length-only baseline implementation
+- Full CodeBERT training and checkpointing
+- Exploratory data analysis, README, and results tables
+- Error analysis by function length, with success and failure examples
+- Report: abstract, introduction, data, conclusion, related work, model architecture, ethics, and the final architecture figure
+
+**Shared:** results tables, training curves, discussion draft, revisions based on the proposal feedback, and submission.
 
 ## How to run
 ```bash
@@ -119,4 +139,4 @@ python src/eda.py && python src/length_baseline.py
 python src/train.py --model codebert --seed 0     # also: bilstm, bilstm_pt, --max_len, --strategy headtail, --train_top_k 4, --lr
 python src/analyze.py
 ```
-`run_all.sh` runs every experiment from the report. We ran everything on a single Google Colab GPU.
+`run_all.sh` runs every experiment from the report. We ran everything on a single NVIDIA Tesla T4 GPU in Google Colab.

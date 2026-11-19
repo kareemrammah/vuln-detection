@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+cache/
+smoke/
+*.pt
+*.pkl
+.ipynb_checkpoints/
+.DS_Store
