@@ -1,6 +1,6 @@
 # Detecting Vulnerable C Functions: Fine-Tuned CodeBERT vs. BiLSTM
 
-CSC413 final project (University of Toronto Mississauga). Kareem Rammah and Danny Leo.
+Kareem Rammah and Danny Leo
 
 ## Introduction
 We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset in the CodeXGLUE split) is vulnerable.
