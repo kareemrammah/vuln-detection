@@ -1,5 +1,3 @@
-% FINAL REPORT. Search for \TODO (red) for the few items that still need your input.
-% Needs on Overleaf: the course neurips_2026 style file, eda.png and fig_curves.pdf (from Colab).
 \documentclass{article}
 
 \usepackage[preprint]{neurips_2026}
@@ -104,7 +102,7 @@ The benchmark has 27{,}318 functions, split into 21{,}854 training, 2{,}732 vali
 The fraction of vulnerable examples is 45.8\%, 43.4\%, and 45.9\% in the three splits (Figure~\ref{fig:eda}, left). The classes are close to balanced, so accuracy is a meaningful metric alongside F1.
 We use the fixed split provided by the benchmark, so that our numbers can be compared with published results.
 
-\begin{figure}[t]
+\begin{figure}[h!]
   \centering
   \includegraphics[width=\linewidth]{eda.png}
   \caption{Exploratory statistics of the Devign/CodeXGLUE data. The left panel shows the fraction of vulnerable functions in the training, validation, and test splits, which is between 43\% and 46\% in each. The right panel shows the distribution of function length in subword tokens. Functions longer than 2{,}000 tokens are grouped into the last bar, and the dashed line marks CodeBERT's 512-token input limit. Almost half of all functions go past this limit.}
@@ -136,7 +134,7 @@ Both models share the same input and output (Figure~\ref{fig:arch}).
 A function is tokenized to $x_{1:n}$, truncated to $L$ tokens, and mapped to a probability $\hat{y}=\sigma(\mathbf{w}^\top \mathbf{h} + b)$, where $\mathbf{h}\in\mathbb{R}^d$ is a summary vector of the function.
 Training minimizes the binary cross-entropy $\mathcal{L}=-\big[y\log\hat{y}+(1-y)\log(1-\hat{y})\big]$.
 
-\begin{figure}[t]
+\begin{figure}[h!]
   \centering
   \begin{tikzpicture}[
       node distance=5mm,
@@ -147,23 +145,18 @@ Training minimizes the binary cross-entropy $\mathcal{L}=-\big[y\log\hat{y}+(1-y
       arr/.style={-{Latex[length=2mm]}, thick},
       grp/.style={draw, rounded corners, dashed, inner sep=3mm}
     ]
-    % shared input
     \node[io] (tok) {C function $\to$ BPE tokens $x_{1:n}$ (truncate to $L$)};
 
-    % CodeBERT branch
     \node[main, right=7mm of tok, yshift=15mm] (m1) {\texttt{[CLS]}, $x_1,\dots,x_L$ + position embeddings};
     \node[main, right=of m1] (m2) {12 $\times$ self-attention + feed-forward layers};
     \node[main, right=of m2] (m3) {$\mathbf{h}=$ output state at \texttt{[CLS]} ($d=768$)};
 
-    % BiLSTM branch
     \node[base, right=7mm of tok, yshift=-15mm] (b1) {$x_1,\dots,x_L$ embeddings (random or CodeBERT init)};
     \node[base, right=of b1] (b2) {$\rightarrow$ forward LSTM\\$\leftarrow$ backward LSTM\\(2 layers)};
     \node[base, right=of b2] (b3) {concat, mask padding, max-pool over time: $\mathbf{h}$ ($d=512$)};
 
-    % shared output
     \node[io, anchor=west] (out) at ($(m3.east)!0.5!(b3.east)+(7mm,0)$) {Dropout, linear, sigmoid: $\hat{y}=P(\text{vulnerable})$};
 
-    % arrows
     \draw[arr] (tok.east) -- ++(3mm,0) |- (m1.west);
     \draw[arr] (tok.east) -- ++(3mm,0) |- (b1.west);
     \draw[arr] (m1) -- (m2);
@@ -189,7 +182,7 @@ Token identifiers are mapped to 256-dimensional learned embeddings. These hold a
 A two-layer bidirectional LSTM with 256 hidden units per direction processes the embeddings. Element-wise max-pooling over time gives $\mathbf{h}\in\mathbb{R}^{512}$. Max-pooling lets any position in a long function contribute a strong signal, without relying on the final hidden state to remember it.
 Sequences are passed to the LSTM as packed padded sequences, so that padding tokens do not affect either direction. Padded positions are also masked before max-pooling, so that only real input tokens contribute to the function representation.
 
-We use dropout 0.3 between the LSTM layers and before the output layer, and train with Adam from random initialization (learning rate $10^{-3}$, batch size 32, 10 epochs, gradient-norm clipping at 1.0). We select the checkpoint with the best validation F1, as for CodeBERT.
+We use dropout 0.3 between layers and train with Adam from random initialization (learning rate $10^{-3}$, batch size 32, 10 epochs, gradient-norm clipping at 1.0). We select the checkpoint with the best validation F1, as for CodeBERT.
 
 To separate the effect of pre-trained token embeddings from that of pre-trained contextual layers, we also train a BiLSTM-PT variant. Its embedding layer is initialized from CodeBERT's input token embeddings, and it is otherwise the same. CodeBERT's embeddings have 768 dimensions and the baseline uses 256, so we add a learned linear projection from 768 to 256 dimensions before the LSTM. The pre-trained embeddings remain trainable. This variant has 41.4M parameters.
 The maximum length $L$ counts special tokens such as \texttt{[CLS]}. With $L = 512$, a function contributes at most 510 content tokens.
@@ -217,7 +210,7 @@ For error analysis, we break down accuracy by function length and inspect confid
 Accuracy suits the near-balanced classes (45.9\% vulnerable in the test split) and allows comparison with published work. F1 balances precision and recall. ROC-AUC does not depend on the 0.5 threshold. Recall matters most for deployment, since a missed vulnerability is the costly error.
 Table~\ref{tab:main} compares the models on the test split. Table~\ref{tab:abl} reports the ablations, Table~\ref{tab:len} breaks accuracy down by function length, and Figure~\ref{fig:curves} shows training curves.
 
-\begin{table}[t]
+\begin{table}[h!]
   \caption{Test-set results in \% (mean $\pm$ population standard deviation over three seeds). The length-only classifier is a logistic regression on the log token count (one run). CodeBERT is shown at two learning rates.}
   \label{tab:main}
   \centering
@@ -234,7 +227,7 @@ Table~\ref{tab:main} compares the models on the test split. Table~\ref{tab:abl} 
   \end{tabular}
 \end{table}
 
-\begin{table}[t]
+\begin{table}[h!]
   \caption{Ablations on the test set in \%. All rows use seed 0. The first row of each model is its seed-0 reference, which is the fair comparison point, because CodeBERT's seed 0 was its weakest seed.}
   \label{tab:abl}
   \centering
@@ -256,7 +249,7 @@ Table~\ref{tab:main} compares the models on the test split. Table~\ref{tab:abl} 
   \end{tabular}
 \end{table}
 
-\begin{table}[t]
+\begin{table}[h!]
   \caption{Test accuracy (\%) by function length in subword tokens, averaged over three seeds ($n$ is the number of test functions). CodeBERT is at $2\times10^{-5}$.}
   \label{tab:len}
   \centering
@@ -272,7 +265,7 @@ Table~\ref{tab:main} compares the models on the test split. Table~\ref{tab:abl} 
   \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[h!]
   \centering
   \includegraphics[width=\linewidth]{fig_curves.pdf}
   \caption{Training loss (left), validation F1 (middle), and validation ROC-AUC (right) per epoch for the BiLSTM (orange, 10 epochs) and CodeBERT (blue, 5 epochs), with one thin line per seed. Training loss keeps falling, while the BiLSTM's validation ROC-AUC peaks after about 3 to 4 epochs and then declines.}
@@ -296,10 +289,10 @@ This matches the ``small gap'' case in our proposal. On a flat token sequence, a
 
 \textbf{Comparison with published results:}
 When CodeBERT uses its better learning rate, both models exceed the published figures. The BiLSTM reaches 64.8\% against 59.4\%, and CodeBERT reaches 65.3\% against 62.1\%. The BiLSTM gains more. At $3\times10^{-5}$, CodeBERT only matches its published number (62.3\% against 62.1\%).
-We did not reproduce the published training setup. Our tokenizer, input length, pooling, and checkpoint selection may differ from it, so we cannot say why. We selected checkpoints and learning rates on validation data only, and evaluated each trained model on the test set once.
+We did not reproduce the published training setup. Our tokenizer, input length, pooling, and checkpoint selection may differ from it, so we cannot say why. We selected models on validation data only and used the test set once.
 
 \textbf{Pre-trained embeddings:}
-Initializing the BiLSTM with CodeBERT's embeddings did not help either. Test accuracy was 62.2\% against 64.2\% for the seed-0 reference, and the best validation ROC-AUC was 0.715 against 0.738. The benefit of CodeBERT is therefore not located in its token embeddings.
+Initializing the BiLSTM with CodeBERT's embeddings did not help either. Test accuracy was 62.2\% against 64.2\% for the seed-0 reference, and validation ROC-AUC was 0.715 against 0.738. The benefit of CodeBERT is therefore not located in its token embeddings.
 
 \textbf{Overfitting and variance:}
 Both models overfit. The BiLSTM's training loss falls from 0.64 to about 0.25 by epoch 8, while its validation ROC-AUC peaks around epoch 3 and then declines. CodeBERT's validation ROC-AUC flattens after epoch 3 to 4 (Figure~\ref{fig:curves}).
@@ -308,7 +301,7 @@ At $3\times10^{-5}$, the rule selected epoch 1 for seed 1. That checkpoint has a
 
 \textbf{Truncation and input length:}
 Shortening CodeBERT's input from 512 to 256 tokens left seed-0 accuracy unchanged (62.4\% against 62.7\%). The 128-token input was slightly lower (61.5\%, ROC-AUC 68.4 against 70.7). We see no evidence that extra context matters much on its own.
-Keeping the first and last $L/2$ tokens gave a higher ROC-AUC than keeping the first $L$ tokens, for both models and on both the validation and test splits. For CodeBERT, the best validation ROC-AUC was 0.750 against 0.739, and test ROC-AUC was 74.0 against 70.7. For the BiLSTM, the values were 0.759 against 0.738 and 72.3 against 71.5. Accuracy did not change consistently. Each difference comes from one seed and is about the size of the seed variation, so we treat it as suggestive only.
+Keeping the first and last $L/2$ tokens gave a higher ROC-AUC than keeping the first $L$ tokens, for both models and on both the validation and test splits. For CodeBERT, validation ROC-AUC was 0.750 against 0.739 and test ROC-AUC 74.0 against 70.7. For the BiLSTM, the values were 0.759 against 0.738 and 72.3 against 71.5. Accuracy did not change consistently. Each difference comes from one seed and is about the size of the seed variation, so we treat it as suggestive only.
 Fine-tuning only the top four layers (28.9M trainable parameters, about 5.4 instead of 9.6 minutes per epoch) matched full fine-tuning within noise (64.4\% against 62.7\%).
 
 \textbf{Function length:}
@@ -335,7 +328,7 @@ Possible extensions include sliding-window or hierarchical encoding of long func
 \section{Ethical Considerations}
 
 \textbf{Data:}
-The data consists of public open-source code, but it is distributed under the licenses of the original projects. We share code, a pointer to the source dataset, and a few quoted example functions, but not a copy of the data.
+The data consists of public open-source code, but it is distributed under the licenses of the original projects. We share only code and a pointer to the source dataset, not a copy.
 Labels come from manual annotation of functions drawn from security-related commits, so they may contain noise. A function changed in a security fix could be unrelated to the vulnerability, and an unchanged function could be vulnerable but unreported.
 All examples come from two large projects maintained by experienced developers. The model may learn project-specific style rather than vulnerability semantics. Results should not be assumed to transfer to other codebases or to code written by less experienced programmers.
 
