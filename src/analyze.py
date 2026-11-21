@@ -3,6 +3,7 @@ Uses EXACT config names for the two main models (wildcards used to match tuning/
 import glob, json, os, collections
 import numpy as np, matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from data import load_splits
 
 KEYS = ["accuracy", "precision", "recall", "f1", "roc_auc"]
@@ -22,17 +23,17 @@ if os.path.exists("results/length_only/metrics.json"):
 open("results/table.md", "w").write("\n".join(rows)); print("\n".join(rows))
 
 # training curves: the two main configs, every seed (thin lines)
-plt.rcParams.update({"font.size": 13})
+plt.rcParams.update({"font.size": 10})
 COL = {"BiLSTM": "tab:orange", "CodeBERT": "tab:blue"}
-fig, ax = plt.subplots(1, 3, figsize=(12, 3.4))
+fig, ax = plt.subplots(1, 3, figsize=(8, 2.6))
 for name, cfg in MAIN.items():
     for k, f in enumerate(sorted(glob.glob(f"results/{cfg}/seed*/history.json"))):
         h = json.load(open(f)); x = [e["epoch"] for e in h]
         for a, key in zip(ax, ["train_loss", "val_f1", "val_roc_auc"]):
             a.plot(x, [e[key] for e in h], color=COL[name], alpha=.75, label=name if k == 0 else None)
 for a, t in zip(ax, ["Training loss", "Validation F1", "Validation ROC-AUC"]):
-    a.set_title(t); a.set_xlabel("epoch")
-ax[0].legend(); plt.tight_layout(); plt.savefig("report/fig_curves.pdf")
+    a.set_title(t); a.set_xlabel("epoch"); a.xaxis.set_major_locator(MaxNLocator(integer=True))
+ax[0].legend(); plt.tight_layout(); plt.savefig("report/fig_curves.pdf"); plt.savefig("report/fig_curves.png", dpi=200)
 
 # error analysis by function length (all seeds), confident mistakes (seed 0)
 test = load_splits()["test"]

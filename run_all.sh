@@ -1,6 +1,6 @@
 #!/bin/bash
 # Reproduces every experiment in the report. Run from the repository root.
-# Time on one Colab T4: CodeBERT ~48 min/run, BiLSTM ~11 min/run. Stop whenever you run out of compute.
+# Time on one Colab T4: CodeBERT ~50 min/run, BiLSTM ~11 min/run. Stop whenever you run out of compute.
 set -e; cd "$(dirname "$0")"; export PYTHONPATH=src
 python src/eda.py                              # data statistics + report/eda.png
 python src/length_baseline.py                  # length-only reference

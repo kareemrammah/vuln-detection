@@ -1,6 +1,6 @@
 # Detecting Vulnerable C Functions: Fine-Tuned CodeBERT vs. BiLSTM
 
-Kareem Rammah and Danny Leo
+CSC413 final project (University of Toronto Mississauga). Kareem Rammah and Danny Leo.
 
 ## Introduction
 We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset in the CodeXGLUE split) is vulnerable.
@@ -13,7 +13,7 @@ We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset
 ```
 src/            data.py (loading, dedupe, tokenization), models.py, train.py, analyze.py,
                 eda.py, length_baseline.py, brace_artifact.py
-report/         main.tex (the paper), architecture.png/.tex, eda.png, fig_curves.pdf
+report/         main.tex (the paper), architecture.png/.tex, eda.png, fig_curves.png/.pdf
 results/        table.md, all_runs.json (metrics + training history of every run),
                 *_confident_errors.txt
 run_all.sh      every command used for the experiments
@@ -58,7 +58,10 @@ Data and model weights are not included (see Data).
 - **Split:** the fixed benchmark split.
 
 ## Training
-- **Training curves:** `report/fig_curves.pdf` (training loss, validation F1, validation ROC-AUC; one line per seed).
+- **Training curves** of the final models (training loss, validation F1, validation ROC-AUC; one line per seed; PDF version in `report/fig_curves.pdf`):
+
+  ![Training curves](report/fig_curves.png)
+
 - **Settings:** the checkpoint with the best validation F1 is evaluated once on the test split.
   - CodeBERT: AdamW, learning rate 2e-5, weight decay 0.01, 10% linear warm-up then linear decay, batch size 16, 5 epochs, dropout 0.1, gradient clipping 1.0, fp16.
   - BiLSTM: Adam, learning rate 1e-3, batch size 32, 10 epochs, dropout 0.3, gradient clipping 1.0.
