@@ -20,4 +20,5 @@ python src/train.py --model codebert --strategy headtail --seed 0
 for L in 128 256; do python src/train.py --model codebert --max_len $L --seed 0; done
 python src/train.py --model codebert --train_top_k 4 --seed 0
 python src/analyze.py                          # tables, curves, length analysis, confident errors
+python src/gather_runs.py #merge results into result/all_runs.json
 python src/brace_artifact.py                   # formatting-artifact check
