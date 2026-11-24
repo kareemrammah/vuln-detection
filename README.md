@@ -113,7 +113,6 @@ Data and model weights are not included (see Data).
 This is a research baseline, not a deployable scanner.
 
 ## Authors
-<!-- Placeholder based on the proposal's planned work division. Confirm that it matches who actually did what before submitting. -->
 Kareem Rammah and Danny Leo worked as a team of two.
 
 **Kareem Rammah**
