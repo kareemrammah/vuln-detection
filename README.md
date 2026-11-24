@@ -12,7 +12,7 @@ We classify whether a single C function (from FFmpeg or QEMU; the Devign dataset
 ## Repository layout
 ```
 src/            data.py (loading, dedupe, tokenization), models.py, train.py, analyze.py,
-                eda.py, length_baseline.py, brace_artifact.py
+                eda.py, length_baseline.py, brace_artifact.py, gather_runs.py (all_runs.json is written by it)
 report/         main.tex (the paper), architecture.png/.tex, eda.png, fig_curves.png/.pdf
 results/        table.md, all_runs.json (metrics + training history of every run),
                 *_confident_errors.txt
